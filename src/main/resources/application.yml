@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: InsurenceAIProject
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        options:
+          model: llama3.1:latest
+          temperature: 0.7
+      embedding:
+        options:
+          model: nomic-embed-text:latest
+    vectorstore:
+      pgvector:
+        table-name: policy_chunks
+        dimension: 768
+        initialize-schema: true
+        remove-existing-vector-store-table: false
+  datasource:
+    url: jdbc:postgresql://localhost:5432/insurance_ai
+    username: nites
+    password: ""
+    driver-class-name: org.postgresql.Driver
+
+logging:
+  level:
+    org.springframework.ai: DEBUG
+    org.springframework.jdbc: DEBUG
