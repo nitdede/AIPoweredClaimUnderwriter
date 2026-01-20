@@ -5,5 +5,5 @@ import org.springframework.ai.document.Document;
 
 import java.util.List;
 
-public record ClaimEvidence(List<Document> matches, ClaimDecision claimDecision, List<String> evidenceChunks ) {
+public record ClaimEvidence(List<Document> matches, ClaimDecision claimDecision, List<String> evidenceChunks, String itemizedDecisions ) {
 }

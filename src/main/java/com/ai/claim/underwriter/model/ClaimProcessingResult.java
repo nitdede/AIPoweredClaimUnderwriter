@@ -1,5 +1,6 @@
 package com.ai.claim.underwriter.model;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 
 /**
@@ -13,6 +14,7 @@ public record ClaimProcessingResult(
         String decision,        // "APPROVED", "DENIED", or "PARTIAL"
         Double payableAmount,   // Amount to be paid based on policy
         List<String> reasons,   // Policy-based reasons for the decision
+        JsonNode itemizedDecisions, // Service-level coverage decisions
         String letter,          // Explanation letter referencing policy terms
         String errorMessage     // Error message if status is "error"
 ) {
@@ -23,13 +25,14 @@ public record ClaimProcessingResult(
             String decision,
             Double payableAmount,
             List<String> reasons,
+            JsonNode itemizedDecisions,
             String letter
     ) {
-        return new ClaimProcessingResult("success", claimId, policyNumber,decision, payableAmount, reasons, letter, null);
+        return new ClaimProcessingResult("success", claimId, policyNumber, decision, payableAmount, reasons, itemizedDecisions, letter, null);
     }
     
     // Factory method for error
     public static ClaimProcessingResult error(String errorMessage) {
-        return new ClaimProcessingResult("error", null, null,null, null, null, null, errorMessage);
+        return new ClaimProcessingResult("error", null, null, null, null, null, null, null, errorMessage);
     }
 }

@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "build:ui": "tsc --project tsconfig.json",
+    "watch:ui": "tsc --project tsconfig.json --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
