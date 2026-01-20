@@ -1,104 +1,116 @@
 package com.ai.claim.underwriter.service;
 
 import com.ai.claim.underwriter.model.ExtractedInvoice;
-import com.ai.claim.underwriter.tools.InvoiceContext;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ai.claim.underwriter.model.InvoiceContext;
+import com.ai.claim.underwriter.model.LineItemsOnly;
+import com.ai.claim.underwriter.model.MetadataOnly;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.ChatOptions;
-import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+
+import static com.ai.claim.underwriter.utils.AbstractConstant.*;
 
 @Service
 public class InvoiceExtractorService {
-    private final ChatClient chatClient;
-    private final ObjectMapper objectMapper;
-    private final InvoiceContext invoiceContext;
 
-    public InvoiceExtractorService(ChatClient.Builder chatClientBuilder, ObjectMapper objectMapper, InvoiceContext invoiceContext) {
+    private static final Logger logger = LoggerFactory.getLogger(InvoiceExtractorService.class);
+    private final ChatClient chatClient;
+    private final InvoiceContext invoiceContext;
+    private final Executor blockingTaskExecutor;
+
+    @Value("classpath:/templates/metadataExtractionPrompt.st")
+    Resource metadataExtractionPrompt;
+
+    @Value("classpath:/templates/lineItemsExtractionPrompt.st")
+    Resource lineItemsExtractionPrompt;
+
+    public InvoiceExtractorService(ChatClient.Builder chatClientBuilder, 
+                                   InvoiceContext invoiceContext,
+                                   @Qualifier("blockingTaskExecutor") Executor blockingTaskExecutor) {
         this.chatClient = chatClientBuilder.build();
-        this.objectMapper = objectMapper;
         this.invoiceContext = invoiceContext;
+        this.blockingTaskExecutor = blockingTaskExecutor;
     }
 
-    @Tool(description = "Extracts structured invoice data from invoice text and validate the extracted data.")
-    public Map<String, Object>  extract(String invoiceText) {
-        System.out.println("Extracting structured invoice data from text");
+    public Map<String, Object> extract(String invoiceText) {
 
-        String system = """
-                You are an invoice data extraction system. Your job is to extract structured data from medical invoice text and validate the extracted data.
-                
-                CRITICAL: Your response must be ONLY valid JSON. No explanations, no markdown, no additional text.
-                
-                IMPORTANT: Confidence scores greater than 0.7 are considered valid. Do not attempt re-extraction for scores above this threshold.
-                
-                Extract the following fields from the invoice text:
-                - patientName: The patient's full name
-                - invoiceNumber: The invoice/bill number
-                - dateOfService: The date of service (as a string, e.g., "Jun 23 2023")
-                - totalAmount: The total/net amount as a number (no currency symbol)
-                - currency: The currency code (e.g., "INR", "USD")
-                - hospitalName: The name of the hospital or medical facility
-                - lineItems: An array of services/procedures, each with:
-                  - desc: Description of the service
-                  - amount: Cost as a number
-                  - confidence: Your confidence in this extraction (0.0 to 1.0)
-                - confidence: An object with confidence scores for each field (optional)
-                
-                RESPONSE FORMAT - Return ONLY this JSON:
-                {
-                  "patientName": "Patient Name",
-                  "invoiceNumber": "INV-12345",
-                  "dateOfService": "Jun 23 2023",
-                  "totalAmount": 6300.0,
-                  "currency": "INR",
-                  "hospitalName": "Hospital Name",
-                  "lineItems": [
-                    {"desc": "Blood Test", "amount": 2500.0, "confidence": 0.95},
-                    {"desc": "X-Ray", "amount": 1800.0, "confidence": 0.90}
-                  ],
-                  "confidence": {"patientName": 0.95, "invoiceNumber": 0.90}
-                }
-                """;
-
-        String user = """
-                INVOICE SUMMARY:
-                %s
-                """.formatted(invoiceText);
-
-        String response = chatClient.prompt()
-                .system(system)
-                .user(user)
-                .options(ChatOptions.builder().temperature(0.0).build())
-                .call()
-                .content();
+        List<String> issues = new ArrayList<>();
+        logger.info("Extracting structured invoice data using two-phase parallel approach");
 
         try {
-            // Sanitize the response - strip markdown and fix expressions
-            String sanitizedResponse = sanitizeJsonResponse(response);
-            ExtractedInvoice invoice = objectMapper.readValue(sanitizedResponse, ExtractedInvoice.class);
+            // Phase 1: Extract metadata (parallel)
+            CompletableFuture<MetadataOnly> metadataFuture = CompletableFuture.supplyAsync(() -> {
+                logger.info("Phase 1: Extracting metadata");
+                return extractMetadataOnly(invoiceText);
+            }, blockingTaskExecutor);
+
+            // Phase 2: Extract line items (parallel)
+            CompletableFuture<LineItemsOnly> itemsFuture = CompletableFuture.supplyAsync(() -> {
+                logger.info("Phase 2: Extracting line items");
+                String itemizedSection = extractItemizedSection(invoiceText);
+                List<String> chunks = chunkTextByLines(itemizedSection, 80);
+                List<CompletableFuture<LineItemsOnly>> futures = chunks.stream()
+                        .map(chunk -> CompletableFuture.supplyAsync(() -> extractLineItemsOnly(chunk), blockingTaskExecutor))
+                        .toList();
+
+                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+                List<LineItemsOnly> parts = futures.stream()
+                        .map(CompletableFuture::join)
+                        .toList();
+
+                return mergeLineItems(parts);
+            }, blockingTaskExecutor);
+
+            // Wait for both phases to complete
+            CompletableFuture.allOf(metadataFuture, itemsFuture).join();
+
+            MetadataOnly metadata = metadataFuture.get();
+            LineItemsOnly items = itemsFuture.get();
+
+            logger.info("Both phases completed. Merging results...");
+
+            // Merge results into ExtractedInvoice
+            ExtractedInvoice invoice = new ExtractedInvoice(
+                    metadata.patientName(),
+                    metadata.invoiceNumber(),
+                    metadata.dateOfService(),
+                    metadata.totalAmount(),
+                    metadata.currency(),
+                    metadata.hospitalName(),
+                    items.lineItems(),
+                    Map.of() // confidence map
+            );
+
             // Store in context for the save tool to use
             invoiceContext.setLastExtractedInvoice(invoice);
 
-            System.out.println("Extracted invoice: " + invoice);
+            logger.info(EXTRACTED_INVOICE + "patientName={}, invoiceNumber={}, lineItems count={}",
+                    invoice.patientName(), invoice.invoiceNumber(),
+                    invoice.lineItems() != null ? invoice.lineItems().size() : 0);
 
-            List<String> issues = new ArrayList<>();
-
+            // Validate
             if (invoice.patientName() == null || invoice.patientName().isBlank()) {
-                issues.add("Missing patient name");
+                issues.add(MISSING_PATIENT_NAME);
+                throw new RuntimeException(MISSING_PATIENT_NAME);
             }
             if (invoice.invoiceNumber() == null || invoice.invoiceNumber().isBlank()) {
-                issues.add("Missing invoice number");
+                issues.add(MISSING_INVOICE_NUMBER);
             }
             if (invoice.totalAmount() == null || invoice.totalAmount() <= 0) {
-                issues.add("Invalid or missing total amount");
+                issues.add(INVALID_OR_MISSING_TOTAL_AMOUNT);
             }
             if (invoice.dateOfService() == null || invoice.dateOfService().isBlank()) {
-                issues.add("Missing date of service");
+                issues.add(MISSING_DATE_OF_SERVICE);
             }
 
             // Build validation result
@@ -108,74 +120,114 @@ public class InvoiceExtractorService {
             result.put("invoice", invoice);
 
             return result;
+
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse invoice: " + response, e);
+            logger.error("Failed to extract invoice: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to parse invoice: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Sanitizes JSON response by:
-     * 1. Stripping markdown code blocks (```json ... ```)
-     * 2. Evaluating arithmetic expressions
+     * Phase 1: Extract only metadata fields
      */
-    private String sanitizeJsonResponse(String json) {
-        // Step 1: Strip markdown code blocks if present
-        json = json.trim();
-        if (json.startsWith("```")) {
-            // Remove opening ```json or ``` 
-            int firstNewline = json.indexOf('\n');
-            if (firstNewline > 0) {
-                json = json.substring(firstNewline + 1);
-            }
-            // Remove closing ```
-            if (json.endsWith("```")) {
-                json = json.substring(0, json.length() - 3);
-            }
-            json = json.trim();
-        }
-        
-        // Step 2: Fix arithmetic expressions in JSON (e.g., 2500 + 1800 + 20000)
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
-                "(\"\\w+\"\\s*:\\s*)(\\d+(?:\\.\\d+)?(?:\\s*[+\\-*/]\\s*\\d+(?:\\.\\d+)?)+)");
-        java.util.regex.Matcher matcher = pattern.matcher(json);
-        
-        StringBuffer result = new StringBuffer();
-        while (matcher.find()) {
-            String prefix = matcher.group(1);
-            String expression = matcher.group(2);
-            try {
-                // Evaluate the arithmetic expression
-                double value = evaluateExpression(expression);
-                matcher.appendReplacement(result, prefix + value);
-            } catch (Exception e) {
-                // If evaluation fails, keep original
-                matcher.appendReplacement(result, matcher.group(0));
-            }
-        }
-        matcher.appendTail(result);
-        return result.toString();
+    private MetadataOnly extractMetadataOnly(String invoiceText) {
+        String user = """
+                INVOICE TEXT:
+                %s
+                """.formatted(invoiceText);
+
+        return chatClient.prompt()
+                .system(metadataExtractionPrompt)
+                .user(user)
+                .options(ChatOptions.builder().model("gpt-4o").temperature(0.0).build())
+                .call()
+                .entity(MetadataOnly.class);
     }
 
     /**
-     * Simple arithmetic expression evaluator for + and - operations
+     * Phase 2: Extract only line items
      */
-    private double evaluateExpression(String expression) {
-        // Remove spaces and split by + or -
-        expression = expression.replaceAll("\\s+", "");
-        double result = 0;
-        String[] addParts = expression.split("\\+");
-        for (String part : addParts) {
-            if (part.contains("-")) {
-                String[] subParts = part.split("-");
-                double subResult = Double.parseDouble(subParts[0]);
-                for (int i = 1; i < subParts.length; i++) {
-                    subResult -= Double.parseDouble(subParts[i]);
-                }
-                result += subResult;
-            } else {
-                result += Double.parseDouble(part);
+    private LineItemsOnly extractLineItemsOnly(String itemizedText) {
+        String user = """
+                ITEMIZED SERVICES SECTION:
+                %s
+                """.formatted(itemizedText);
+
+        return chatClient.prompt()
+                .system(lineItemsExtractionPrompt)
+                .user(user)
+                .options(ChatOptions.builder().temperature(0.0).build())
+                .call()
+                .entity(LineItemsOnly.class);
+    }
+
+    /**
+     * Extract the itemized/line items section from the full invoice text
+     */
+    private String extractItemizedSection(String fullText) {
+        // Common section markers in invoices
+        String[] markers = {
+                "ITEMIZED SERVICES", "LINE ITEMS", "SERVICES:", "CHARGES:",
+                "BILL DETAILS", "PARTICULARS", "DIAGNOSTICS", "PHARMACY",
+                "PROCEDURE DETAILS", "ROOM / SERVICE", "CHARGES BREAKDOWN",
+                "BILLING DETAILS", "SERVICE DETAILS", "TREATMENT CHARGES",
+                "INVESTIGATION", "CONSULTATION", "CONSUMABLES", "MEDICINE"
+        };
+
+        int earliestStart = -1;
+
+        for (String marker : markers) {
+            int index = fullText.toUpperCase().indexOf(marker);
+            if (index != -1 && (earliestStart == -1 || index < earliestStart)) {
+                earliestStart = index;
             }
         }
-        return result;
+
+        if (earliestStart != -1) {
+            // Extract from first marker to end
+            String section = fullText.substring(earliestStart);
+            logger.debug("Extracted itemized section starting at position {}, length: {}", earliestStart, section.length());
+            return section;
+        }
+
+        // Fallback: return full text
+        logger.warn("No itemized section markers found, using full invoice text");
+        return fullText;
     }
+
+    private List<String> chunkTextByLines(String text, int maxLinesPerChunk) {
+        String[] lines = text.split("\\r?\\n");
+        List<String> chunks = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        int lineCount = 0;
+
+        for (String line : lines) {
+            current.append(line).append("\n");
+            lineCount++;
+            if (lineCount >= maxLinesPerChunk) {
+                chunks.add(current.toString());
+                current.setLength(0);
+                lineCount = 0;
+            }
+        }
+        if (!current.isEmpty()) {
+            chunks.add(current.toString());
+        }
+        return chunks;
+    }
+
+    private LineItemsOnly mergeLineItems(List<LineItemsOnly> parts) {
+        Map<String, ExtractedInvoice.LineItem> merged = new LinkedHashMap<>();
+        for (LineItemsOnly part : parts) {
+            if (part == null || part.lineItems() == null) {
+                continue;
+            }
+            for (var item : part.lineItems()) {
+                String key = (item.desc() + "|" + item.amount()).toLowerCase().trim();
+                merged.putIfAbsent(key, item);
+            }
+        }
+        return new LineItemsOnly(new ArrayList<>(merged.values()));
+    }
+
 }

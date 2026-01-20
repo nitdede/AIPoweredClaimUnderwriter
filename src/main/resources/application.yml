@@ -1,29 +1,64 @@
 spring:
   application:
     name: InsurenceAIProject
+  profiles:
+    default: local
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.ollama.autoconfigure.OllamaChatAutoConfiguration
+      - org.springframework.ai.model.ollama.autoconfigure.OllamaEmbeddingAutoConfiguration
   ai:
-    ollama:
-      base-url: http://localhost:11434
+    mcp:
+      client:
+        enabled: ${MCP_CLIENT_ENABLED:true}  # Default true for local, override with env var
+        type: SYNC
+        toolcallback:
+          enabled: true
+    openai:
+      api-key: ${OPENAI_API_KEY}
       chat:
         options:
-          model: llama3.1:latest
+          model: gpt-4o
           temperature: 0.7
       embedding:
         options:
-          model: nomic-embed-text:latest
+          model: text-embedding-3-small
     vectorstore:
       pgvector:
         table-name: policy_chunks
-        dimension: 768
+        dimensions: 1536
         initialize-schema: true
-        remove-existing-vector-store-table: false
+        remove-existing-vector-store-table: false  # Will drop and recreate on startup
+
+          # dimensions: 768  # Removed - use OpenAI default 1536
+    #ollama:
+      #base-url: http://localhost:11434
+      #chat:
+        #options:
+          #model: llama3.1:latest
+          #temperature: 0.7
+      #embedding:
+        #options:
+          #model: nomic-embed-text:latest
+
   datasource:
     url: jdbc:postgresql://localhost:5432/insurance_ai
     username: nites
     password: ""
     driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
 
 logging:
   level:
-    org.springframework.ai: DEBUG
-    org.springframework.jdbc: DEBUG
+    org.springframework.ai: info
+    org.springframework.jdbc: info
+
+server:
+  port: 8081
+
