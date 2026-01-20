@@ -13,8 +13,12 @@ public class ClaimDecisionEvidence {
     private Long id;
 
     // decision_id BIGINT NOT NULL REFERENCES claim_decisions(id)
-    @Column(name = "decision_id", nullable = false)
+    @Column(name = "decision_id", nullable = false, insertable = false, updatable = false)
     private Long decisionId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "decision_id", nullable = false)
+    private ClaimDecision claimDecision;
 
     // chunk_text TEXT NOT NULL
     @Column(name = "chunk_text", columnDefinition = "text", nullable = false)
@@ -70,5 +74,16 @@ public class ClaimDecisionEvidence {
 
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public ClaimDecision getClaimDecision() {
+        return claimDecision;
+    }
+
+    public void setClaimDecision(ClaimDecision claimDecision) {
+        this.claimDecision = claimDecision;
+        if (claimDecision != null) {
+            this.decisionId = claimDecision.getId();
+        }
     }
 }
