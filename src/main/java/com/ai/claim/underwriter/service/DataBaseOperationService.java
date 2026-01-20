@@ -1,9 +1,10 @@
-package com.ai.claim.underwriter.tools;
+package com.ai.claim.underwriter.service;
 
 import com.ai.claim.underwriter.entity.ClaimAIResult;
 import com.ai.claim.underwriter.entity.ClaimDecision;
 import com.ai.claim.underwriter.entity.ClaimDecisionEvidence;
 import com.ai.claim.underwriter.model.ClaimAdjudicationRequest;
+import com.ai.claim.underwriter.model.ClaimEvidence;
 import com.ai.claim.underwriter.model.ClaimExtractionResult;
 import com.ai.claim.underwriter.model.ExtractedInvoice;
 import com.ai.claim.underwriter.repository.ClaimAIResultDB;
@@ -13,37 +14,31 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
-public class DataBaseTools {
+public class DataBaseOperationService {
     private final ClaimAIResultDB claimAIResultDB;
     private final ObjectMapper objectMapper;
     private final ClaimDecisionDB claimDecisionDB;
     private final ClaimDecisionEvidenceDB claimDecisionEvidenceDB;
-    private final InvoiceContext invoiceContext;
 
-    public DataBaseTools(ClaimAIResultDB claimAIResultDB, ObjectMapper objectMapper, 
-                        ClaimDecisionDB claimDecisionDB, ClaimDecisionEvidenceDB claimDecisionEvidenceDB,
-                        InvoiceContext invoiceContext) {
+    public DataBaseOperationService(ClaimAIResultDB claimAIResultDB, ObjectMapper objectMapper,
+                                    ClaimDecisionDB claimDecisionDB, ClaimDecisionEvidenceDB claimDecisionEvidenceDB) {
         this.claimAIResultDB = claimAIResultDB;
         this.objectMapper = objectMapper;
         this.claimDecisionDB = claimDecisionDB;
         this.claimDecisionEvidenceDB = claimDecisionEvidenceDB;
-        this.invoiceContext = invoiceContext;
     }
 
-    @Tool(description = "Saves the previously extracted invoice data to database. Call this after the extract tool has been used.")
-    public String saveInvoiceData(ExtractedInvoice invoice) {
-        System.out.println("Saving extracted invoice data into DB");
-        
-        // Get the invoice from context (set by extract tool)
-       // ExtractedInvoice invoice = invoiceContext.getLastExtractedInvoice();
-        
+    public void saveInvoiceData(ExtractedInvoice invoice) {
+
         if (invoice == null) {
             throw new IllegalArgumentException("No extracted invoice found. Please call the extract tool first.");
         }
@@ -73,13 +68,9 @@ public class DataBaseTools {
         
         // Save to DB
         saveResult(result);
-        
-        System.out.println("Successfully saved invoice: " + invoice.invoiceNumber());
-        return "Successfully saved invoice data to database with invoice number: " + invoice.invoiceNumber();
     }
 
     public void saveResult(ClaimExtractionResult result) {
-        System.out.println("Saving ClaimExtractionResult into DB");
         ClaimAIResult claimAIResult = new ClaimAIResult();
 
         // Map simple fields
@@ -129,33 +120,32 @@ public class DataBaseTools {
 
     }
 
-    @Tool(description = "Saves the claim decision into the database along with evidence documents."
-    )
-    private void saveClaimDecision(ClaimAdjudicationRequest claimAdjudicationRequest, String decision, Double payable, String reasonsJson, String letter, List<Document> matches) {
-        ClaimDecision claimDecision = new ClaimDecision();
-        claimDecision.setClaimId(claimAdjudicationRequest.claimId());
-        claimDecision.setDecision(decision);
-        if (payable != null) {
-            claimDecision.setPayableAmount(BigDecimal.valueOf(payable).setScale(2, RoundingMode.HALF_UP));
-        } else {
-            claimDecision.setPayableAmount(null);
-        }
-        claimDecision.setReasons(reasonsJson);
-        claimDecision.setLetter(letter);
-        claimDecision.setCreatedAt(LocalDateTime.now());
-        claimDecisionDB.save(claimDecision);
+    @Transactional
+    public void saveIntoClaimEvidenceDB(ClaimEvidence claimEvidence) {
 
-        ClaimDecisionEvidence claimDecisionEvidence = new ClaimDecisionEvidence();
-        for (Document d : matches) {
-            claimDecisionEvidence.setDecisionId(claimDecision.getId());
-            claimDecisionEvidence.setChunkText(d.getText());
-            if (d.getMetadata().get("score") instanceof Number n) {
-                claimDecisionEvidence.setScore(BigDecimal.valueOf(n.doubleValue()).setScale(4, RoundingMode.HALF_UP));
-            } else {
-                claimDecisionEvidence.setScore(null);
-            }
-            claimDecisionEvidenceDB.save(claimDecisionEvidence);
-        }
+        List<ClaimDecisionEvidence> existingEvidences = claimEvidence.matches().stream().map(
+                d -> {
+                    ClaimDecisionEvidence claimDecisionEvidence = new ClaimDecisionEvidence();
+                    claimDecisionEvidence.setChunkText(d.getText());
+                    // Set the relationship object, not just the ID (decision_id is insertable=false)
+                    claimDecisionEvidence.setClaimDecision(claimEvidence.claimDecision());
+                    if (d.getMetadata().get("score") instanceof Number n) {
+                        claimDecisionEvidence
+                                .setScore(BigDecimal.valueOf(n.doubleValue()).setScale(4, RoundingMode.HALF_UP));
+                    } else {
+                        claimDecisionEvidence.setScore(null);
+                    }
+                    return claimDecisionEvidence;
+                }
+
+        ).collect(Collectors.toList());
+
+        claimDecisionEvidenceDB.saveAll(existingEvidences);
+
+    }
+
+    public ClaimDecision saveIntoClaimDecisionDB(ClaimEvidence claimEvidence) {
+        return claimDecisionDB.save(claimEvidence.claimDecision());
     }
 
     public boolean needMoreInfo(ClaimExtractionResult result){

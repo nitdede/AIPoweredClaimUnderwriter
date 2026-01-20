@@ -1,6 +1,5 @@
-package com.ai.claim.underwriter.tools;
+package com.ai.claim.underwriter.model;
 
-import com.ai.claim.underwriter.model.ExtractedInvoice;
 import org.springframework.stereotype.Component;
 
 /**

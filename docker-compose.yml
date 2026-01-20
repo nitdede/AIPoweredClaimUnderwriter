@@ -1,0 +1,81 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: aipowered-claim-underwriter:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: "docker"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB}"
+      SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER}"
+      SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      # When Ollama runs on the host machine and the app runs in Docker, use host.docker.internal
+      # SPRING_AI_OLLAMA_BASE_URL: "http://host.docker.internal:11434"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      helpdesk-mcp:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  helpdesk-mcp:
+    build:
+      context: ../HelpDeskMCPServer
+      dockerfile: Dockerfile
+    image: helpdesk-mcp-server:latest
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: "docker"
+      POSTGRES_HOST: "postgres"
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: "${POSTGRES_DB}"
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null -w '%{http_code}' http://localhost:8082/mcp | grep -E '^[0-9]{3}$' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  postgres:
+    build:
+      context: .
+      dockerfile: DockerFilePostgres
+    image: postgres:15-pgvector
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./initdb-scripts:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h postgres -U ${POSTGRES_USER} -d ${POSTGRES_DB} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# NOTE: Ollama service removed from compose because Ollama will be run locally on the host.
+
+volumes:
+  pgdata:

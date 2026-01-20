@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArogyaSecure - Claims Portal</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="logo-wrapper" aria-hidden="true">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="40" height="40" rx="10" fill="#0066FF"/>
+                        <path d="M20 10L14 15H18V22H22V15H26L20 10Z" fill="white"/>
+                        <path d="M12 24H28V28C28 29.1046 27.1046 30 26 30H14C12.8954 30 12 29.1046 12 28V24Z" fill="white"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>ArogyaSecure</h1>
+                    <div class="brand-subtitle">Claims Management Portal</div>
+                </div>
+            </div>
+
+            <div class="nav-actions">
+                <button id="openPolicyModal" class="btn-secondary" type="button">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    Ingest Policy
+                </button>
+
+                <button id="openHelpDesk" class="btn-secondary" type="button" aria-haspopup="dialog" aria-controls="helpdeskModal">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+                        <path d="M8 9h8"></path>
+                        <path d="M8 13h6"></path>
+                    </svg>
+                    Help
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-wrapper">
+        <div class="container">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="page-header-content">
+                    <h2 class="page-title">Submit New Claim</h2>
+                    <p class="page-subtitle">Upload invoice details and receive an AI-assisted adjudication decision with a formal decision letter.</p>
+                </div>
+            </div>
+
+            <!-- Main Grid -->
+            <div class="content-grid">
+                <!-- Claim Submission Form -->
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <div class="card-icon" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21V8a2 2 0 0 0-2-2h-7l-2-2H6a2 2 0 0 0-2 2v15"></path>
+                                <path d="M8 21h8"></path>
+                                <path d="M12 17v4"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="card-title">Claim Information</div>
+                            <div class="card-description">Enter policy number and paste invoice line-items for processing.</div>
+                        </div>
+                    </div>
+
+                    <form id="claimForm" novalidate>
+                        <div class="form-group">
+                            <label for="policyNumber" class="form-label">
+                                Policy Number <span class="required">*</span>
+                            </label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                <input
+                                    type="text"
+                                    id="policyNumber"
+                                    name="policyNumber"
+                                    class="form-input"
+                                    placeholder="e.g., ASPL-HI-784512"
+                                    autocomplete="off"
+                                    required
+                                >
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="patientName" class="form-label">
+                                Patient Name <span class="required">*</span>
+                            </label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                <input
+                                    type="text"
+                                    id="patientName"
+                                    name="patientName"
+                                    class="form-input"
+                                    placeholder="e.g., John Doe"
+                                    autocomplete="name"
+                                    required
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Input Method Selection -->
+                        <div class="form-group">
+                            <label class="form-label">
+                                Input Method <span class="required">*</span>
+                            </label>
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="inputMethod" value="text" id="inputMethodText">
+                                    <span class="radio-custom"></span>
+                                    <span class="radio-label">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                                            <polyline points="10 9 9 9 8 9"></polyline>
+                                        </svg>
+                                        Text Input
+                                    </span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="inputMethod" value="file" id="inputMethodFile">
+                                    <span class="radio-custom"></span>
+                                    <span class="radio-label">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                            <polyline points="13 2 13 9 20 9"></polyline>
+                                        </svg>
+                                        File Upload
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Text Input Section (hidden by default) -->
+                        <div class="form-group" id="textInputSection" style="display: none;">
+                            <label for="invoiceText" class="form-label">
+                                Invoice Details <span class="required">*</span>
+                            </label>
+                            <textarea
+                                id="invoiceText"
+                                name="invoiceText"
+                                class="form-textarea"
+                                placeholder="Paste invoice text or enter line items...&#10;&#10;Example:&#10;Blood Test - ₹2,500&#10;X-Ray Chest - ₹1,800&#10;Consultation - ₹1,000"
+                            ></textarea>
+                            <div class="form-hint">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                </svg>
+                                Include service descriptions and amounts for accurate processing.
+                            </div>
+                        </div>
+
+                        <!-- File Upload Section (hidden by default) -->
+                        <div class="form-group" id="fileInputSection" style="display: none;">
+                            <label class="form-label">
+                                Claim Invoice File <span class="required">*</span>
+                            </label>
+                            <div class="upload-area-claim" id="claimUploadArea">
+                                <input type="file" id="claimFileUpload" accept=".pdf,.txt" hidden>
+                                <div class="upload-icon-claim">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="17 8 12 3 7 8"></polyline>
+                                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                                    </svg>
+                                </div>
+                                <p class="upload-text-claim"><strong>Drop your claim invoice here</strong> or click to browse</p>
+                                <p class="upload-hint-claim">Supports PDF and TXT files</p>
+                            </div>
+                            <div id="claimFilePreview" style="display: none; margin-top: 12px;">
+                                <div class="file-preview-claim">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                        <polyline points="13 2 13 9 20 9"></polyline>
+                                    </svg>
+                                    <span id="claimFileName"></span>
+                                    <button type="button" class="file-remove-claim" onclick="removeClaimFile()" aria-label="Remove file">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary btn-large" id="submitBtn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <polyline points="9 11 12 14 22 4"></polyline>
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                            </svg>
+                            Process Claim
+                        </button>
+
+                        <!-- Processing Indicator -->
+                        <div id="processingIndicator" style="display: none; margin-top: 20px; text-align: center; padding: 30px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
+                            <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #ffffff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                            <p style="margin: 15px 0 5px 0; font-size: 18px; font-weight: 700; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">Processing your claim...</p>
+                            <p style="margin: 0; font-size: 15px; font-weight: 500; color: #ffffff; opacity: 0.95;">Please wait, this may take a few moments</p>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Results Section -->
+                <div id="resultSection" class="card card-result" style="display: none;">
+                    <div class="card-header">
+                        <div class="card-icon card-icon-result" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="card-title">Adjudication Result</div>
+                            <div class="card-description">Decision summary, itemized coverage and the official decision letter.</div>
+                        </div>
+                    </div>
+                    <div id="resultContent">
+                        <div class="message" style="background: var(--color-bg); border: 1px dashed var(--color-border);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M8 12h8"></path>
+                                <path d="M12 8v8"></path>
+                            </svg>
+                            <div>
+                                <strong>Results will appear here</strong>
+                                <p>Submit a claim to see the decision, approved amount, and the decision letter.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Policy Ingestion Modal -->
+    <div id="policyModal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title-wrapper">
+                        <div class="modal-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="modal-title">Ingest Policy Document</h2>
+                            <p class="modal-subtitle">Add new policy to the system</p>
+                        </div>
+                    </div>
+                    <button class="close" aria-label="Close modal">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="policyForm">
+                    <div class="modal-body">
+                        <!-- File Upload Section -->
+                        <div class="upload-section">
+                            <div class="upload-area" id="uploadArea">
+                                <input type="file" id="policyFileUpload" accept=".pdf,.doc,.docx,.txt" hidden>
+                                <div class="upload-icon">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="17 8 12 3 7 8"></polyline>
+                                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                                    </svg>
+                                </div>
+                                <h3 class="upload-title">Upload Policy Document</h3>
+                                <p class="upload-subtitle">Click to browse or drag and drop</p>
+                                <p class="upload-formats">PDF, DOC, DOCX, TXT (Max 10MB)</p>
+                                <button type="button" class="btn-upload" onclick="document.getElementById('policyFileUpload').click()">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 9l-5-5-5 5M12 4v12"></path>
+                                    </svg>
+                                    Choose File
+                                </button>
+                                <div class="upload-divider">
+                                    <span>OR</span>
+                                </div>
+                                <button type="button" class="btn-cloud">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+                                    </svg>
+                                    Upload from Cloud
+                                </button>
+                            </div>
+                            <div class="file-info" id="fileInfo" style="display: none;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                    <polyline points="13 2 13 9 20 9"></polyline>
+                                </svg>
+                                <span id="fileName"></span>
+                                <button type="button" class="btn-remove" onclick="removeFile()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Policy Details Form -->
+                        <div class="form-section">
+                            <h3 class="section-heading">Policy Details</h3>
+                            
+                            <div class="form-group-modal">
+                                <label for="policyId" class="form-label-modal">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                    </svg>
+                                    Policy ID <span class="required">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="policyId"
+                                    name="policyId"
+                                    class="form-input-modal"
+                                    placeholder="e.g., POL-001"
+                                    required
+                                >
+                            </div>
+
+                            <div class="form-group-modal">
+                                <label for="customerId" class="form-label-modal">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    Customer Name <span class="required">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="customerId"
+                                    name="customerId"
+                                    class="form-input-modal"
+                                    placeholder="e.g., RAJESH KUMAR"
+                                    required
+                                >
+                            </div>
+
+                            <div class="form-group-modal">
+                                <label for="policyNumberModal" class="form-label-modal">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                    Policy Number <span class="required">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="policyNumberModal"
+                                    name="policyNumberModal"
+                                    class="form-input-modal"
+                                    placeholder="e.g., ASPL-HI-784512"
+                                    required
+                                >
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer-new">
+                        <button type="button" class="btn-modal-secondary btn-cancel">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn-modal-primary" id="policySubmitBtn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                <polyline points="7 3 7 8 15 8"></polyline>
+                            </svg>
+                            Save Policy
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Desk Chat Modal -->
+    <div id="helpdeskModal" class="modal helpdesk-modal" role="dialog" aria-modal="true" aria-labelledby="helpdeskTitle">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog modal-dialog-wide">
+            <div class="modal-content helpdesk-modal-content">
+                <div class="modal-header helpdesk-header-new">
+                    <div class="modal-title-wrapper">
+                        <div class="modal-icon-gradient">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+                                <circle cx="9" cy="10" r="1" fill="white"></circle>
+                                <circle cx="15" cy="10" r="1" fill="white"></circle>
+                                <path d="M9 14s1.5 2 3 2 3-2 3-2"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="modal-title-new">AI Help Desk</h2>
+                            <p class="modal-subtitle-new">Get instant assistance with your claims and policies</p>
+                        </div>
+                    </div>
+                    <button class="close-new" type="button" aria-label="Close help desk">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="helpdesk-body-new">
+                    <form id="helpdeskForm" class="helpdesk-form-unified">
+                        <div class="helpdesk-form-row">
+                            <div class="form-group-help">
+                                <label for="hdCustomerName" class="form-label-help">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    Customer Name <span class="required">*</span>
+                                </label>
+                                <input id="hdCustomerName" name="customerName" class="form-input-help" placeholder="e.g., Rajesh Kumar" required>
+                            </div>
+
+                            <div class="form-group-help">
+                                <label for="hdClaimId" class="form-label-help">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                    </svg>
+                                    Claim ID
+                                </label>
+                                <input id="hdClaimId" name="claimId" class="form-input-help" placeholder="e.g., 123">
+                            </div>
+
+                            <div class="form-group-help">
+                                <label for="hdPolicyNumber" class="form-label-help">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                    Policy Number
+                                </label>
+                                <input id="hdPolicyNumber" name="policyNumber" class="form-input-help" placeholder="e.g., ASI">
+                            </div>
+                        </div>
+
+                        <div class="form-group-help">
+                            <label for="hdIssue" class="form-label-help">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                                Your Question <span class="required">*</span>
+                            </label>
+                            <textarea id="hdIssue" name="issueDescription" class="form-textarea-help" placeholder="Ask about coverage, documents, amounts, timelines, etc." rows="3" required></textarea>
+                        </div>
+
+                        <button type="submit" class="btn-help-submit" id="hdSubmit">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 2L11 13"></path>
+                                <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+                            </svg>
+                            Send Message
+                        </button>
+                    </form>
+
+                    <!-- Response Section - Always Visible Below Form -->
+                    <div class="helpdesk-response-unified">
+                        <div class="response-header-unified">
+                            <div class="response-icon-unified">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                                </svg>
+                            </div>
+                            <span class="response-title-unified">AI Response</span>
+                        </div>
+                        <div id="hdAiResponse" class="ai-response-unified">
+                            <div class="empty-response-unified">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                                    <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                                    <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                                </svg>
+                                <p>Your AI response will appear here</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Conversation History (collapsed by default) -->
+                        <div class="conversation-toggle-unified" id="conversationToggle">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                            <span>View Conversation History</span>
+                        </div>
+                        <div id="hdTranscript" class="conversation-history" style="display: none;">
+                            <!-- Conversation will be populated here -->
+                        </div>
+                    </div>
+                </form>
+
+                <div class="modal-footer-help">
+                    <button type="button" class="btn-help-secondary" id="hdCancel">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        Close
+                    </button>
+                    <button type="button" class="btn-help-clear" id="hdClear">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        Clear History
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loader" class="loader" style="display: none;">
+        <div class="loader-content">
+            <div class="spinner-wrapper">
+                <div class="spinner"></div>
+                <div class="spinner-glow"></div>
+            </div>
+            <p class="loader-text">Processing your claim...</p>
+            <p class="loader-subtext">This may take a few moments</p>
+        </div>
+    </div>
+
+    <script type="module" src="/node/src/app.js?v=3"></script>
+</body>
+</html>

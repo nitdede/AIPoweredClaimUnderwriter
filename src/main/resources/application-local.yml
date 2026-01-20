@@ -1,0 +1,11 @@
+spring:
+  ai:
+    mcp:
+      client:
+        stdio:
+          connections:
+            mcp-helpdesk-ticket-server:
+              command: java
+              args:
+                - -jar
+                - /Users/Shared/Files From d.localized/personal/HelpDeskMCPServer/target/HelpDeskMCPServer-0.0.1-SNAPSHOT.jar

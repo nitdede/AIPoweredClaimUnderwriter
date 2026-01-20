@@ -8,6 +8,8 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +25,7 @@ public class PolicyIngestionService {
         this.resourceLoader = resourceLoader;
     }
 
-    public String performRAG(String policyDocumentPath, PolicyMataData metadata) throws IOException {
+    public String performRAG(MultipartFile file, PolicyMataData metadata){
 
         // ✅ Add metadata to each chunk BEFORE storing
         Map<String, String> meta = Map.of(
@@ -33,7 +35,7 @@ public class PolicyIngestionService {
         );
 
         // 1. Load text file as Document
-        Resource resource = resourceLoader.getResource(policyDocumentPath);
+        Resource resource = file.getResource(); //resourceLoader.getResource(policyDocumentPath);
         List<Document> documents = new TextReader(resource).get();
 
         // 2. Split into chunks
@@ -48,8 +50,8 @@ public class PolicyIngestionService {
 
 
         // 3. Embed + save to pgvector (automatic)
-        vectorStore.add(chunks);
+        vectorStore.add(chunksWithMeta);
 
-        return "Policy stored in vector DB. Chunks:"  + chunks.size();
+        return "Policy stored in vector DB. Chunks:"  + chunksWithMeta.size();
     }
 }
